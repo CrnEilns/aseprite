@@ -8,13 +8,13 @@ jobs:
       matrix:
         os: [windows-latest]
         build_type: [Release]
-        enable_ui: [off]
+        enable_ui: [on]
         include:
-          - os: ubuntu-latest
-            build_type: Debug
+          - os: windows-latest
+            build_type: Release
             enable_ui: on
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
     - name: ccache
@@ -25,10 +25,6 @@ jobs:
     - uses: seanmiddleditch/gha-setup-ninja@master
     - uses: ilammy/msvc-dev-cmd@v1
       if: runner.os == 'Windows'
-    - name: Workaround for windows-2022 and cmake 3.25.0
-      if: runner.os == 'Windows'
-      shell: bash
-      run: rm -rf C:/Strawberry/
     - name: Install Dependencies
       shell: bash
       run: |
@@ -45,13 +41,23 @@ jobs:
         else
           export enable_ccache=on
         fi
+        curl -L https://github.com/JetBrains/skia-pack/releases/download/m110-d88a7b5/Skia-m110-d88a7b5-windows-Release-x64.zip --output Skia-m110-d88a7b5-windows-Release-x64.zip
+        7z x Skia-m110-d88a7b5-windows-Release-x64.zip
         cmake -S . -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 \
-          -DENABLE_TESTS=ON \
           -DENABLE_UI=${{ matrix.enable_ui }} \
-          -DENABLE_CCACHE=$enable_ccache
+          -DENABLE_CCACHE=$enable_ccache \
+          -DLAF_BACKEND=Skia-m110-d88a7b5-windows-Release-x64 \
+          -DSKIA_DIR=./Skia-m110-d88a7b5-windows-Release-x64 \
+          -DSKIA_LIBRARY_DIR=./Skia-m110-d88a7b5-windows-Release-x64/out/Release-x64 \
+          -DSKIA_LIBRARY=./Skia-m110-d88a7b5-windows-Release-x64/out/Release-x64/skia.lib
     - name: Compiling
       shell: bash
       run: |
         cd build && ninja
+    - uses: actions/upload-artifact@v3
+      with:
+        name: aseprite
+        path: |
+          D:/a/aseprite/aseprite/build/bin/data
+          D:/a/aseprite/aseprite/build/bin/aseprite.exe
